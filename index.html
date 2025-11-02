@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boustrophedon Text Converter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'EB Garamond', serif;
+            background: #f7f7f7;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border: 1px solid #5a7a58;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2d4a2b;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 3px solid #2d4a2b;
+        }
+
+        .header-content {
+            display: inline-block;
+            text-align: left;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.2em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.15em;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #5a7a58;
+            font-size: 1.15em;
+            font-family: 'EB Garamond', serif;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #2d4a2b;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        button {
+            background: #2d4a2b;
+            color: white;
+            border: 2px solid #5a7a58;
+            padding: 14px 35px;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            font-family: 'EB Garamond', serif;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(45, 74, 43, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .output-section {
+            margin-top: 30px;
+        }
+
+        .output-box {
+            background: #fafafa;
+            border: 2px solid #5a7a58;
+            padding: 20px;
+            min-height: 150px;
+            font-size: 1.4em;
+            line-height: 2em;
+        }
+
+        .boustrophedon-text {
+            display: block;
+            line-height: 2em;
+        }
+
+        .boustrophedon-text .line {
+            display: block;
+        }
+
+        .boustrophedon-text .line-odd {
+            text-align: left;
+        }
+
+        .boustrophedon-text .line-even {
+            transform: scaleX(-1);
+            text-align: left;
+        }
+
+        .boustrophedon-text .line-break {
+            height: 1em;
+        }
+
+        .ox-emoji {
+            display: inline-block;
+            transform: scaleX(-1);
+        }
+
+        .reversed-text {
+            display: inline-block;
+            transform: scaleX(-1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>Boustrophedon Converter <span class="ox-emoji">🐂</span></h1>
+                <p>🐂 <span class="reversed-text">Display your text in the manner of the ox while ploughing</span></p>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <label for="inputText">Enter your text:</label>
+                <textarea id="inputText" placeholder="Type or paste your text here...">"Boustrophedon is a style of writing in which alternate lines of writing are reversed, with letters also written in reverse, mirror-style. This is in contrast to modern European languages, where lines always begin on the same side, usually the left." (wikipedia.org/wiki/Boustrophedon)</textarea>
+            </div>
+
+            <div class="controls">
+                <button onclick="convertText()">Boustrophedonise <span class="ox-emoji">🐂</span></button>
+                <button onclick="clearAll()">Clear All</button>
+            </div>
+
+            <div class="output-section">
+                <label>Boustrophedon Output:</label>
+                <div id="output" class="output-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function convertText() {
+            const input = document.getElementById('inputText').value;
+            const output = document.getElementById('output');
+            
+            if (!input.trim()) {
+                output.innerHTML = '<span style="color: #999;">No text to convert. Please enter some text above.</span>';
+                return;
+            }
+
+            // Split into paragraphs first (by double line breaks or single line breaks)
+            const paragraphs = input.split(/\n\n+|\n/);
+            let allLines = [];
+            let paragraphIndex = 0;
+            
+            function processParagraph() {
+                if (paragraphIndex >= paragraphs.length) {
+                    // All paragraphs processed, now render
+                    let result = '<div class="boustrophedon-text">';
+                    allLines.forEach((lineObj, index) => {
+                        if (lineObj.isEmpty) {
+                            result += '<div class="line line-break">&nbsp;</div>';
+                        } else {
+                            const className = index % 2 === 0 ? 'line line-odd' : 'line line-even';
+                            result += `<div class="${className}">${escapeHtml(lineObj.text.trim())}</div>`;
+                        }
+                    });
+                    result += '</div>';
+                    output.innerHTML = result;
+                    return;
+                }
+                
+                const paragraph = paragraphs[paragraphIndex];
+                
+                if (!paragraph.trim()) {
+                    // Empty paragraph - add a blank line
+                    allLines.push({ text: '', isEmpty: true });
+                    paragraphIndex++;
+                    setTimeout(processParagraph, 10);
+                    return;
+                }
+                
+                // Render paragraph with each word wrapped in a span
+                const words = paragraph.trim().split(/\s+/);
+                let tempHTML = '<div class="temp-wrapper" style="line-height: 2em;">';
+                words.forEach((word, index) => {
+                    tempHTML += `<span class="word" data-index="${index}">${escapeHtml(word)} </span>`;
+                });
+                tempHTML += '</div>';
+                
+                output.innerHTML = tempHTML;
+                
+                // Wait for rendering, then detect line breaks
+                setTimeout(() => {
+                    const wordElements = output.querySelectorAll('.word');
+                    let currentLine = [];
+                    let currentTop = null;
+                    
+                    wordElements.forEach(element => {
+                        const top = element.offsetTop;
+                        
+                        if (currentTop === null || top === currentTop) {
+                            currentLine.push(element.textContent);
+                            currentTop = top;
+                        } else {
+                            allLines.push({ text: currentLine.join(''), isEmpty: false });
+                            currentLine = [element.textContent];
+                            currentTop = top;
+                        }
+                    });
+                    
+                    if (currentLine.length > 0) {
+                        allLines.push({ text: currentLine.join(''), isEmpty: false });
+                    }
+                    
+                    // Add paragraph break after each paragraph except the last
+                    if (paragraphIndex < paragraphs.length - 1) {
+                        allLines.push({ text: '', isEmpty: true });
+                    }
+                    
+                    paragraphIndex++;
+                    processParagraph();
+                }, 10);
+            }
+            
+            processParagraph();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function clearAll() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('output').innerHTML = '<span style="color: #999;">Output will appear here...</span>';
+        }
+
+        // Convert on page load with default text
+        window.onload = function() {
+            convertText();
+        };
+
+        // Recalculate when window is resized
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                // Only reconvert if there's content
+                if (document.getElementById('inputText').value.trim()) {
+                    convertText();
+                }
+            }, 250); // Debounce for 250ms
+        });
+    </script>
+</body>
+</html>
